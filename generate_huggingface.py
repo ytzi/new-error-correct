@@ -4,9 +4,9 @@ import json
 from tqdm import tqdm
 from pathlib import Path
 
-def generate(model, prompts, batch_size=32, **kwargs):
-    model = transformers.from_pretrained(model)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model)
+def generate(model_name, prompts, batch_size=32, **kwargs):
+    model = transformers.AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
     prompts_split_by_batch = [prompts[i:i + batch_size] for i in range(0, len(prompts), batch_size)]
     outputs = []
     for batch in tqdm(prompts_split_by_batch, desc="batch", total=len(prompts_split_by_batch)):
