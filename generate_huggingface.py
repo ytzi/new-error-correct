@@ -3,22 +3,25 @@ import argparse
 import json
 from tqdm import tqdm
 from pathlib import Path
-import torch
 
 device = "cuda"
 
 def generate(model_name, prompts, batch_size=32, **kwargs):
     model = transformers.AutoModelForCausalLM.from_pretrained(model_name).to(device)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name, padding_side="left")
+    model.config.pad_token_id = tokenizer.pad_token_id
+    model.config.eos_token_id = tokenizer.eos_token_id
+
     tokenizer.pad_token = tokenizer.eos_token
     prompts_split_by_batch = [prompts[i:i + batch_size] for i in range(0, len(prompts), batch_size)]
     outputs = []
     for batch in tqdm(prompts_split_by_batch, desc="batch", total=len(prompts_split_by_batch)):
         batch_text = [b["prompt"] for b in batch]
-        input = tokenizer(batch_text, return_tensors="pt", padding=True)
-        model_output = model.generate(input["input_ids"], **kwargs)
-        
-        outputs.extend(output)
+        input = tokenizer(batch_text, return_tensors="pt", padding=True).to(device)
+        model_output = model.generate(input["input_ids"], attention_mask=input["attention_mask"], **kwargs)
+        for moutput, b in zip(model_output, batch):
+            b["model_output"] = tokenizer.decode(moutput)
+            outputs.append(b)
     return outputs
 
 def read_prompts(prompt_file: Path):
@@ -40,12 +43,12 @@ def main():
     args.add_argument("--batch-size", type=int, default=32)
     args.add_argument("--temperature", type=float, default=0.8)
     args.add_argument("--top-p", type=int, default=0.9)
-    args.add_argument("--max-length", type=int, default=100)
+    args.add_argument("--max-length", type=int, default=1000)
     
     args = args.parse_args()
 
     prompts = read_prompts(args.prompt_file)
-    outputs = generate(args.model, prompts, args.batch_size, temperature=args.temperature, top_p=args.top_p)
+    outputs = generate(args.model, prompts, args.batch_size, temperature=args.temperature, top_p=args.top_p, do_sample=True, max_length=args.max_length)
     produce_output(args.output_file, outputs)
 
 
