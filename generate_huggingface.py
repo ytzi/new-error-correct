@@ -3,15 +3,21 @@ import argparse
 import json
 from tqdm import tqdm
 from pathlib import Path
+import torch
+
+device = "cuda"
 
 def generate(model_name, prompts, batch_size=32, **kwargs):
-    model = transformers.AutoModelForCausalLM.from_pretrained(model_name)
+    model = transformers.AutoModelForCausalLM.from_pretrained(model_name).to(device)
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token = tokenizer.eos_token
     prompts_split_by_batch = [prompts[i:i + batch_size] for i in range(0, len(prompts), batch_size)]
     outputs = []
     for batch in tqdm(prompts_split_by_batch, desc="batch", total=len(prompts_split_by_batch)):
-        input = tokenizer(batch, return_tensors="pt", padding=True)
-        output = model.generate(input["input_ids"], **kwargs)
+        batch_text = [b["prompt"] for b in batch]
+        input = tokenizer(batch_text, return_tensors="pt", padding=True)
+        model_output = model.generate(input["input_ids"], **kwargs)
+        
         outputs.extend(output)
     return outputs
 
