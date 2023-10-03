@@ -43,7 +43,7 @@ def main():
     args.add_argument("--batch-size", type=int, default=32)
     args.add_argument("--temperature", type=float, default=0.8)
     args.add_argument("--top-p", type=int, default=0.9)
-    args.add_argument("--max-length", type=int, default=1000)
+    args.add_argument("--max-length", type=int, default=2000)
     
     args = args.parse_args()
 

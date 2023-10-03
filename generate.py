@@ -10,7 +10,8 @@ def generate(model, prompts, batch_size=32, **kwargs):
     prompts_split_by_batch = [prompts[i:i + batch_size] for i in range(0, len(prompts), batch_size)]
     outputs = []
     for batch in tqdm(prompts_split_by_batch, desc="batch", total=len(prompts_split_by_batch)):
-        output = llm.generate(batch, params=params)
+        batch_text = [b["prompt"] for b in batch]
+        output = llm.generate(batch_text, params)
         outputs.extend(output)
     return outputs
 
